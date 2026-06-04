@@ -92,16 +92,13 @@ export function CoursesView() {
   return (
     <main className="flex-1 overflow-y-auto">
       <div className="p-4 md:p-8 max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="flex justify-between items-start mb-8">
+        <section>
+          <header className="flex justify-between items-start mb-8">
             <div>
-              <h2 className="text-3xl font-bold text-neural-50 mb-2 flex items-center gap-2">
+              <h1 className="text-3xl font-bold text-neural-50 mb-2 flex items-center gap-2">
                 <BookOpen className="text-cyan-glow" size={32} />
                 My Courses
-              </h2>
+              </h1>
               <p className="text-neural-400">
                 All your learning courses in one place
               </p>
@@ -117,7 +114,7 @@ export function CoursesView() {
                 <RotateCw size={20} />
               </motion.button>
             )}
-          </div>
+          </header>
 
           {/* Loading State */}
           {loading && (
@@ -135,15 +132,15 @@ export function CoursesView() {
 
           {/* Error State */}
           {error && !loading && (
-            <motion.div
+            <motion.article
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="bento-card p-6 border-red-500/30 bg-red-500/5 mb-8"
             >
               <div className="flex items-center gap-3 text-red-400 mb-4">
                 <AlertCircle size={20} />
-                <div className="flex-1">
-                  <p className="font-semibold">Error loading courses</p>
+                <div>
+                  <h2 className="font-semibold">Error loading courses</h2>
                   <p className="text-sm text-red-300/80">{error}</p>
                 </div>
               </div>
@@ -155,66 +152,66 @@ export function CoursesView() {
               >
                 Try Again
               </motion.button>
-            </motion.div>
+            </motion.article>
           )}
 
           {/* Courses Grid */}
           {!loading && !error && courses.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {courses.map((course, index) => (
-                <motion.div
+                <article
                   key={course.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
                   className="bento-card p-6 hover:border-cyan-glow/50 transition-all group cursor-pointer"
-                  whileHover={{ y: -4 }}
                 >
-                  <h3 className="text-lg font-semibold text-neural-50 mb-2 group-hover:text-cyan-glow transition-colors">
-                    {course.title}
-                  </h3>
-                  <p className="text-neural-400 text-sm mb-4">
-                    {course.description || 'Master this course and level up your skills'}
-                  </p>
-
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <div className="flex justify-between mb-2">
-                      <span className="text-xs text-neural-400">Progress</span>
-                      <span className="text-cyan-glow text-sm font-mono font-bold">{course.progress}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-neural-700 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${course.progress}%` }}
-                        transition={{ delay: 0.3 + index * 0.1, duration: 0.8, ease: 'easeOut' }}
-                        className="h-full bg-gradient-to-r from-cyan-glow to-pulse rounded-full"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Button */}
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="w-full py-2 rounded text-sm bg-cyan-glow/20 text-cyan-glow hover:bg-cyan-glow/30 transition-colors font-medium"
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ y: -4 }}
+                    className="space-y-4"
                   >
-                    Continue Learning →
-                  </motion.button>
-                </motion.div>
+                    <h3 className="text-lg font-semibold text-neural-50 mb-2 group-hover:text-cyan-glow transition-colors">
+                      {course.title}
+                    </h3>
+                    <p className="text-neural-400 text-sm mb-4">
+                      {course.description || 'Master this course and level up your skills'}
+                    </p>
+
+                    {/* Progress Bar */}
+                    <div className="mb-4">
+                      <div className="flex justify-between mb-2">
+                        <span className="text-xs text-neural-400">Progress</span>
+                        <span className="text-cyan-glow text-sm font-mono font-bold">{course.progress}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-neural-700 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${course.progress}%` }}
+                          transition={{ delay: 0.3 + index * 0.1, duration: 0.8, ease: 'easeOut' }}
+                          className="h-full bg-gradient-to-r from-cyan-glow to-pulse rounded-full"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="w-full py-2 rounded text-sm bg-cyan-glow/20 text-cyan-glow hover:bg-cyan-glow/30 transition-colors font-medium"
+                    >
+                      Continue Learning →
+                    </motion.button>
+                  </motion.div>
+                </article>
               ))}
-            </div>
+            </section>
           )}
 
           {/* Empty State */}
           {!loading && !error && courses.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center py-12 bento-card p-8"
-            >
+            <article className="text-center py-12 bento-card p-8">
               <BookOpen className="text-neural-600 mx-auto mb-4" size={48} />
-              <p className="text-neural-400 text-lg font-semibold mb-2">No courses found</p>
+              <h2 className="text-neural-400 text-lg font-semibold mb-2">No courses found</h2>
               <p className="text-neural-500 text-sm mb-6">The API returned an empty courses list</p>
               <motion.button
                 onClick={fetchCourses}
@@ -224,9 +221,9 @@ export function CoursesView() {
               >
                 Refresh Courses
               </motion.button>
-            </motion.div>
+            </article>
           )}
-        </motion.div>
+        </section>
       </div>
     </main>
   )

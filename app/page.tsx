@@ -14,12 +14,12 @@ export default function DashboardPage() {
     <div className="flex h-screen bg-neural-950">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
-      <div className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto">
         {activeTab === 'dashboard' && <DashboardContent />}
         {activeTab === 'courses' && <CoursesView />}
         {activeTab === 'progress' && <ProgressView />}
         {activeTab === 'settings' && <SettingsView />}
-      </div>
+      </main>
     </div>
   )
 }

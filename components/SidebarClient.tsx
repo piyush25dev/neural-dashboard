@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Menu, X, Home, BookOpen, BarChart3, Settings, LogOut, ChevronRight,
+  Menu, X, Home, BookOpen, BarChart3, Settings, LogOut, ChevronRight, ChevronLeft,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -13,19 +13,20 @@ const navItems = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ]
 
-interface SidebarClientProps {
+interface SidebarProps {
   activeTab: string
   onTabChange: (tab: string) => void
 }
 
-export function SidebarClient({ activeTab, onTabChange }: SidebarClientProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function SidebarClient({ activeTab, onTabChange }: SidebarProps) {
+  const [isOpenMobile, setIsOpenMobile] = useState(false)
+  const [isCollapsedDesktop, setIsCollapsedDesktop] = useState(false)
 
   // Track breakpoint to close drawer when resizing to desktop
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)')
     const update = (e: MediaQueryListEvent | MediaQueryList) => {
-      if (e.matches) setIsOpen(false) // close drawer when resizing to desktop
+      if (e.matches) setIsOpenMobile(false)
     }
     update(mq)
     mq.addEventListener('change', update)
@@ -34,19 +35,33 @@ export function SidebarClient({ activeTab, onTabChange }: SidebarClientProps) {
 
   // Prevent body scroll when mobile drawer is open
   useEffect(() => {
-    document.body.style.overflow = isOpen ? 'hidden' : ''
+    document.body.style.overflow = isOpenMobile ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [isOpen])
+  }, [isOpenMobile])
+
+  // Save collapse state to localStorage
+  useEffect(() => {
+    const savedState = localStorage.getItem('sidebar-collapsed')
+    if (savedState !== null) {
+      setIsCollapsedDesktop(savedState === 'true')
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', isCollapsedDesktop.toString())
+  }, [isCollapsedDesktop])
 
   const handleTabChange = (tabId: string) => {
     onTabChange(tabId)
-    setIsOpen(false)
+    setIsOpenMobile(false)
   }
 
   const sidebarContent = (
-    <aside className="h-screen w-64 bg-gradient-to-b from-neural-900 to-neural-950 border-r border-neural-700 p-6 flex flex-col">
+    <aside className={`h-screen bg-gradient-to-b from-neural-900 to-neural-950 border-r border-neural-700 p-6 flex flex-col transition-all duration-300 ${
+      isCollapsedDesktop ? 'w-20' : 'w-64'
+    }`}>
       {/* Logo */}
-      <div className="mb-8 pt-4 lg:pt-0 flex items-center gap-2">
+      <div className="mb-8 pt-4 lg:pt-0 flex items-center gap-2 overflow-hidden">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
@@ -54,10 +69,20 @@ export function SidebarClient({ activeTab, onTabChange }: SidebarClientProps) {
         >
           <span className="text-neural-950 font-bold text-sm">N</span>
         </motion.div>
-        <div>
-          <h1 className="font-bold text-neural-50 leading-tight">Neural</h1>
-          <p className="text-xs text-neural-400">Dashboard</p>
-        </div>
+        <AnimatePresence mode="wait">
+          {!isCollapsedDesktop && (
+            <motion.div
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: 'auto' }}
+              exit={{ opacity: 0, width: 0 }}
+              transition={{ duration: 0.2 }}
+              className="whitespace-nowrap"
+            >
+              <h1 className="font-bold text-neural-50 leading-tight">Neural</h1>
+              <p className="text-xs text-neural-400">Dashboard</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Navigation */}
@@ -73,6 +98,7 @@ export function SidebarClient({ activeTab, onTabChange }: SidebarClientProps) {
               transition={{ delay: i * 0.05 + 0.1, type: 'spring', stiffness: 120, damping: 20 }}
               onClick={() => handleTabChange(item.id)}
               className="sidebar-nav-item w-full text-left relative group"
+              title={isCollapsedDesktop ? item.label : ''}
             >
               {isActive && (
                 <motion.div
@@ -82,41 +108,71 @@ export function SidebarClient({ activeTab, onTabChange }: SidebarClientProps) {
                 />
               )}
               <div className="relative z-10 flex items-center gap-3">
-                <Icon size={20} className={isActive ? 'text-cyan-glow' : 'text-neural-400'} />
-                <span className={isActive ? 'text-cyan-glow' : 'text-neural-300'}>
-                  {item.label}
-                </span>
-                {isActive && (
-                  <motion.div className="ml-auto" initial={{ x: -8 }} animate={{ x: 0 }}>
-                    <ChevronRight size={16} className="text-cyan-glow" />
-                  </motion.div>
-                )}
+                <Icon size={20} className={`shrink-0 ${isActive ? 'text-cyan-glow' : 'text-neural-400'}`} />
+                <AnimatePresence mode="wait">
+                  {!isCollapsedDesktop && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center gap-2 flex-1 min-w-0"
+                    >
+                      <span className={`truncate ${isActive ? 'text-cyan-glow' : 'text-neural-300'}`}>
+                        {item.label}
+                      </span>
+                      {isActive && (
+                        <ChevronRight size={16} className="text-cyan-glow shrink-0" />
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.button>
           )
         })}
       </nav>
 
-      <div className="h-px bg-gradient-to-r from-neural-700/0 via-neural-600 to-neural-700/0 my-4" />
+      <AnimatePresence mode="wait">
+        {!isCollapsedDesktop && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="h-px bg-gradient-to-r from-neural-700/0 via-neural-600 to-neural-700/0 my-4" />
+            
+            <motion.button
+              whileHover={{ scale: 1.02, x: 4 }}
+              whileTap={{ scale: 0.98 }}
+              className="sidebar-nav-item w-full text-left text-red-400 hover:bg-red-500/10 hover:text-red-300"
+            >
+              <LogOut size={20} className="shrink-0" />
+              <span className="truncate">Logout</span>
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
+      {/* Collapse Button (Desktop only) */}
       <motion.button
-        whileHover={{ scale: 1.02, x: 4 }}
-        whileTap={{ scale: 0.98 }}
-        className="sidebar-nav-item w-full text-left text-red-400 hover:bg-red-500/10 hover:text-red-300"
-        onClick={() => setIsOpen(false)}
+        onClick={() => setIsCollapsedDesktop(!isCollapsedDesktop)}
+        className="hidden lg:flex items-center justify-center p-2 rounded-lg bg-neural-800 border border-neural-700 text-neural-400 hover:text-cyan-glow hover:border-cyan-glow/50 transition-colors mt-4"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        title={isCollapsedDesktop ? 'Expand' : 'Collapse'}
       >
-        <LogOut size={20} />
-        <span>Logout</span>
+        {isCollapsedDesktop ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
       </motion.button>
     </aside>
   )
 
   return (
     <>
-      {/* Hamburger — mobile only, hidden when sidebar is open */}
-      {!isOpen && (
+      {/* Hamburger — mobile only */}
+      {!isOpenMobile && (
         <motion.button
-          onClick={() => setIsOpen(true)}
+          onClick={() => setIsOpenMobile(true)}
           className="fixed top-4 right-4 z-40 lg:hidden p-2 rounded-lg bg-neural-800 border border-neural-700 text-neural-50 hover:bg-neural-700 transition-colors"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -126,14 +182,14 @@ export function SidebarClient({ activeTab, onTabChange }: SidebarClientProps) {
         </motion.button>
       )}
 
-      {/* ── Desktop: always-visible static sidebar ── */}
+      {/* Desktop: always-visible, collapsible sidebar */}
       <div className="hidden lg:block h-screen sticky top-0">
         {sidebarContent}
       </div>
 
-      {/* ── Mobile: AnimatePresence drawer + backdrop ── */}
+      {/* Mobile: AnimatePresence drawer + backdrop */}
       <AnimatePresence>
-        {isOpen && (
+        {isOpenMobile && (
           <>
             {/* Backdrop */}
             <motion.div
@@ -141,21 +197,21 @@ export function SidebarClient({ activeTab, onTabChange }: SidebarClientProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
+              onClick={() => setIsOpenMobile(false)}
               className="fixed inset-0 bg-black/50 z-30 lg:hidden"
             />
 
             {/* Drawer */}
             <motion.div
               key="drawer"
-              initial={{ x: -280, opacity: 0 }}
+              initial={{ x: -320, opacity: 0 }}
               animate={{ x: 0, opacity: 1, transition: { type: 'spring', stiffness: 100, damping: 28 } }}
-              exit={{ x: -280, opacity: 0, transition: { duration: 0.2 } }}
+              exit={{ x: -320, opacity: 0, transition: { duration: 0.2 } }}
               className="fixed left-0 top-0 z-40 lg:hidden"
             >
               {/* Close button inside drawer */}
               <motion.button
-                onClick={() => setIsOpen(false)}
+                onClick={() => setIsOpenMobile(false)}
                 className="absolute top-4 right-[-44px] p-2 rounded-lg bg-neural-800 border border-neural-700 text-neural-50 hover:bg-neural-700 transition-colors"
                 whileTap={{ scale: 0.95 }}
                 aria-label="Close menu"
