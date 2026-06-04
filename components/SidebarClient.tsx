@@ -21,44 +21,66 @@ interface SidebarProps {
 export function SidebarClient({ activeTab, onTabChange }: SidebarProps) {
   const [isOpenMobile, setIsOpenMobile] = useState(false)
   const [isCollapsedDesktop, setIsCollapsedDesktop] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
-  // Track breakpoint to close drawer when resizing to desktop
+  // Handle mounting to prevent hydration issues
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Track breakpoint to detect desktop vs mobile
+  useEffect(() => {
+    if (!mounted) return
+    
     const mq = window.matchMedia('(min-width: 1024px)')
     const update = (e: MediaQueryListEvent | MediaQueryList) => {
-      if (e.matches) setIsOpenMobile(false)
+      const desktop = e.matches
+      setIsDesktop(desktop)
+      if (desktop) {
+        setIsOpenMobile(false)
+      }
     }
     update(mq)
     mq.addEventListener('change', update)
     return () => mq.removeEventListener('change', update)
-  }, [])
+  }, [mounted])
 
   // Prevent body scroll when mobile drawer is open
   useEffect(() => {
+    if (!mounted) return
     document.body.style.overflow = isOpenMobile ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [isOpenMobile])
+    return () => { 
+      if (mounted) document.body.style.overflow = '' 
+    }
+  }, [isOpenMobile, mounted])
 
-  // Save collapse state to localStorage
+  // Save collapse state to localStorage (only for desktop)
   useEffect(() => {
+    if (!mounted || !isDesktop) return
+    
     const savedState = localStorage.getItem('sidebar-collapsed')
     if (savedState !== null) {
       setIsCollapsedDesktop(savedState === 'true')
     }
-  }, [])
+  }, [isDesktop, mounted])
 
   useEffect(() => {
+    if (!mounted || !isDesktop) return
     localStorage.setItem('sidebar-collapsed', isCollapsedDesktop.toString())
-  }, [isCollapsedDesktop])
+  }, [isCollapsedDesktop, isDesktop, mounted])
 
   const handleTabChange = (tabId: string) => {
     onTabChange(tabId)
     setIsOpenMobile(false)
   }
 
+  // Determine if sidebar should be collapsed (desktop only)
+  const isCollapsed = isDesktop && isCollapsedDesktop
+
   const sidebarContent = (
     <aside className={`h-screen bg-gradient-to-b from-neural-900 to-neural-950 border-r border-neural-700 p-6 flex flex-col transition-all duration-300 ${
-      isCollapsedDesktop ? 'w-20' : 'w-64'
+      isCollapsed ? 'w-20' : 'w-64'
     }`}>
       {/* Logo */}
       <div className="mb-8 pt-4 lg:pt-0 flex items-center gap-2 overflow-hidden">
@@ -70,7 +92,7 @@ export function SidebarClient({ activeTab, onTabChange }: SidebarProps) {
           <span className="text-neural-950 font-bold text-sm">N</span>
         </motion.div>
         <AnimatePresence mode="wait">
-          {!isCollapsedDesktop && (
+          {!isCollapsed && (
             <motion.div
               initial={{ opacity: 0, width: 0 }}
               animate={{ opacity: 1, width: 'auto' }}
@@ -98,7 +120,7 @@ export function SidebarClient({ activeTab, onTabChange }: SidebarProps) {
               transition={{ delay: i * 0.05 + 0.1, type: 'spring', stiffness: 120, damping: 20 }}
               onClick={() => handleTabChange(item.id)}
               className="sidebar-nav-item w-full text-left relative group"
-              title={isCollapsedDesktop ? item.label : ''}
+              title={isCollapsed ? item.label : ''}
             >
               {isActive && (
                 <motion.div
@@ -110,7 +132,7 @@ export function SidebarClient({ activeTab, onTabChange }: SidebarProps) {
               <div className="relative z-10 flex items-center gap-3">
                 <Icon size={20} className={`shrink-0 ${isActive ? 'text-cyan-glow' : 'text-neural-400'}`} />
                 <AnimatePresence mode="wait">
-                  {!isCollapsedDesktop && (
+                  {!isCollapsed && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -133,7 +155,7 @@ export function SidebarClient({ activeTab, onTabChange }: SidebarProps) {
       </nav>
 
       <AnimatePresence mode="wait">
-        {!isCollapsedDesktop && (
+        {!isCollapsed && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -154,23 +176,57 @@ export function SidebarClient({ activeTab, onTabChange }: SidebarProps) {
         )}
       </AnimatePresence>
 
-      {/* Collapse Button (Desktop only) */}
-      <motion.button
-        onClick={() => setIsCollapsedDesktop(!isCollapsedDesktop)}
-        className="hidden lg:flex items-center justify-center p-2 rounded-lg bg-neural-800 border border-neural-700 text-neural-400 hover:text-cyan-glow hover:border-cyan-glow/50 transition-colors mt-4"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        title={isCollapsedDesktop ? 'Expand' : 'Collapse'}
-      >
-        {isCollapsedDesktop ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-      </motion.button>
+      {/* Collapse Button - Only visible on desktop */}
+      {mounted && isDesktop && (
+        <motion.button
+          onClick={() => setIsCollapsedDesktop(!isCollapsedDesktop)}
+          className="flex items-center justify-center p-2 rounded-lg bg-neural-800 border border-neural-700 text-neural-400 hover:text-cyan-glow hover:border-cyan-glow/50 transition-colors mt-4"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          title={isCollapsedDesktop ? 'Expand' : 'Collapse'}
+        >
+          {isCollapsedDesktop ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+        </motion.button>
+      )}
     </aside>
   )
+
+  // Don't render on server to prevent hydration issues
+  if (!mounted) {
+    return (
+      <div className="hidden lg:block h-screen sticky top-0">
+        <aside className="h-screen bg-gradient-to-b from-neural-900 to-neural-950 border-r border-neural-700 p-6 flex flex-col w-64">
+          <div className="mb-8 pt-4 lg:pt-0 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-glow to-pulse flex items-center justify-center shrink-0">
+              <span className="text-neural-950 font-bold text-sm">N</span>
+            </div>
+            <div>
+              <h1 className="font-bold text-neural-50 leading-tight">Neural</h1>
+              <p className="text-xs text-neural-400">Dashboard</p>
+            </div>
+          </div>
+          <nav className="flex-1 space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <div key={item.id} className="sidebar-nav-item w-full text-left relative group">
+                  <div className="relative z-10 flex items-center gap-3">
+                    <Icon size={20} className="text-neural-400" />
+                    <span className="text-neural-300">{item.label}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </nav>
+        </aside>
+      </div>
+    )
+  }
 
   return (
     <>
       {/* Hamburger — mobile only */}
-      {!isOpenMobile && (
+      {!isDesktop && !isOpenMobile && (
         <motion.button
           onClick={() => setIsOpenMobile(true)}
           className="fixed top-4 right-4 z-40 lg:hidden p-2 rounded-lg bg-neural-800 border border-neural-700 text-neural-50 hover:bg-neural-700 transition-colors"
@@ -189,7 +245,7 @@ export function SidebarClient({ activeTab, onTabChange }: SidebarProps) {
 
       {/* Mobile: AnimatePresence drawer + backdrop */}
       <AnimatePresence>
-        {isOpenMobile && (
+        {!isDesktop && isOpenMobile && (
           <>
             {/* Backdrop */}
             <motion.div
